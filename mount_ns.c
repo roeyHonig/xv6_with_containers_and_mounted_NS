@@ -53,11 +53,18 @@ static struct mount_ns* allocmount_ns()
 {
   acquire(&mountnstable.lock);
   
-  // FIX ME  allocate proper entry to preserve a correct 
-  // mountnamepaces structure
-  struct mount_ns* mount_ns = &mountnstable.mount_ns[0];
+  // No nested containers allowed in xv6
+  // Only 3 tty devices
+  // both child namespaces reference the same virtual disk
+  for (int index = 0; index < NNAMESPACE; index++) {
+    if (mountnstable.mount_ns[index].ref == 0) {
+      struct mount_ns* mount_ns = &mountnstable.mount_ns[index];
+      mount_ns->ref = 1;
+      release(&mountnstable.lock);
+      return mount_ns;
+    }
+  }
   release(&mountnstable.lock);
-  return (mount_ns);
 
   panic("out of mount_ns objects");
 }
